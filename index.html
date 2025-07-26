@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Multiplayer Tic‑Tac‑Toe + Chat</title>
+  <title>Multiplayer Tic-Tac-Toe</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body { font-family: 'Segoe UI', sans-serif; background:#0e0e0e; color:#fff; margin:0; padding:0; display:flex; flex-direction:column; align-items:center; }
@@ -10,10 +10,8 @@
     section { max-width: 700px; width: 100%; padding: 1rem; }
 
     input, button { padding:.5rem; border:none; border-radius:4px; }
-    input { flex:1; }
-    button { background:#1db954; color:#fff; transition:0.2s; }
+    button { background:#1db954; color:#fff; cursor:pointer; transition:0.2s; }
     button:hover { background:#18a349; transform: scale(1.05); }
-
     .hidden { display:none; }
     .row { display:flex; gap:.5rem; margin-bottom:.5rem; }
 
@@ -35,10 +33,12 @@
     .msg { margin:2px 0; padding:2px 4px; border-bottom:1px solid #333; }
     .msg-me { color:#1db954; }
     .msg-opp { color:#ccc; }
+
+    #invites div { margin:5px 0; padding:5px; background:#222; border-radius:4px; }
   </style>
 </head>
 <body>
-  <h1>🔥 Tic‑Tac‑Toe + Chat</h1>
+  <h1>🔥 Tic-Tac-Toe + Chat</h1>
 
   <!-- AUTH -->
   <section id="auth-view">
@@ -48,7 +48,7 @@
       <input id="password" placeholder="password" type="password"/>
     </div>
     <div class="row">
-      <input id="username" placeholder="username (for register only)"/>
+      <input id="username" placeholder="username (register only)"/>
     </div>
     <div class="row">
       <button id="loginBtn">Login</button>
@@ -63,6 +63,16 @@
 
     <h2>Play</h2>
     <button id="quickMatchBtn">Quick Match</button>
+
+    <h3>Challenge by Username</h3>
+    <div class="row">
+      <input id="searchUsername" placeholder="Enter username"/>
+      <button id="searchBtn">Search</button>
+    </div>
+    <div id="searchResult"></div>
+
+    <h3>Invites</h3>
+    <div id="invites"></div>
   </section>
 
   <!-- GAME -->
@@ -84,7 +94,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, onSnapshot, serverTimestamp, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, onSnapshot, serverTimestamp, getDocs, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCvUJuMrfxnF6vRp97TiE3vFTwUH-jcDvc",
@@ -102,25 +112,32 @@
   const authView = document.getElementById('auth-view');
   const lobbyView = document.getElementById('lobby-view');
   const gameView = document.getElementById('game-view');
+
   const emailEl = document.getElementById('email');
   const passEl = document.getElementById('password');
   const unameEl = document.getElementById('username');
   const meU = document.getElementById('me-username');
   const meE = document.getElementById('me-email');
+
   const loginBtn = document.getElementById('loginBtn');
   const registerBtn = document.getElementById('registerBtn');
   const logoutBtn = document.getElementById('logoutBtn');
+
   const quickMatchBtn = document.getElementById('quickMatchBtn');
+  const searchUsernameEl = document.getElementById('searchUsername');
+  const searchBtn = document.getElementById('searchBtn');
+  const searchResult = document.getElementById('searchResult');
+  const invitesDiv = document.getElementById('invites');
+
   const backBtn = document.getElementById('backToLobby');
   const boardEl = document.getElementById('board');
   const statusEl = document.getElementById('status');
 
-  // Chat
   const msgDiv = document.getElementById('messages');
   const chatInput = document.getElementById('chatInput');
   const sendBtn = document.getElementById('sendBtn');
 
-  let currentUser=null, userProfile=null, currentGameId=null, mySymbol=null, activeGameUnsub=null, chatUnsub=null;
+  let currentUser=null, userProfile=null, currentGameId=null, mySymbol=null, activeGameUnsub=null, chatUnsub=null, invitesUnsub=null;
 
   function show(v) {
     [authView,lobbyView,gameView].forEach(s=>s.classList.add('hidden'));
@@ -132,7 +149,7 @@
     const s = await getDoc(r);
     if(!s.exists()){
       const username = unameEl.value.trim() || u.email.split('@')[0];
-      await setDoc(r,{ uid:u.uid,email:u.email,username,createdAt:serverTimestamp() });
+      await setDoc(r,{ uid:u.uid,email:u.email,username,usernameLower:username.toLowerCase(),createdAt:serverTimestamp() });
       return {uid:u.uid,email:u.email,username};
     }
     return s.data();
@@ -187,7 +204,6 @@
     });
   }
 
-  // ---- Chat ----
   function listenChat(){
     if(chatUnsub) chatUnsub();
     const q = query(collection(db,'games',currentGameId,'chat'),orderBy('createdAt'));
@@ -239,6 +255,56 @@
     }
   }
 
+  async function searchByUsername(username){
+    searchResult.innerHTML='Searching...';
+    const qUsers=query(collection(db,'users'),where('usernameLower','==',username.toLowerCase()),limit(1));
+    const res=await getDocs(qUsers);
+    if(res.empty){ searchResult.textContent='No user found.'; return; }
+    const userDoc=res.docs[0]; const user=userDoc.data();
+    searchResult.innerHTML=`Found: ${user.username} <button id="challengeBtn">Challenge</button>`;
+    document.getElementById('challengeBtn').onclick=()=>sendChallenge(userDoc.id,user.username);
+  }
+
+  async function sendChallenge(toUid,toUsername){
+    if(toUid===currentUser.uid){alert('Cannot challenge yourself!');return;}
+    await addDoc(collection(db,'challenges'),{
+      fromUid:currentUser.uid,
+      fromUsername:userProfile.username,
+      toUid,toUsername,status:'pending',createdAt:serverTimestamp()
+    });
+    alert('Challenge sent!');
+  }
+
+  function listenInvites(){
+    if(invitesUnsub) invitesUnsub();
+    const qInv=query(collection(db,'challenges'),where('toUid','==',currentUser.uid),where('status','==','pending'),orderBy('createdAt','desc'));
+    invitesUnsub=onSnapshot(qInv,(snap)=>{
+      invitesDiv.innerHTML='';
+      snap.forEach(d=>{
+        const inv=d.data();
+        const div=document.createElement('div');
+        div.textContent=`Invite from ${inv.fromUsername} `;
+        const accept=document.createElement('button'); accept.textContent='Accept';
+        accept.onclick=async()=>{
+          const game=await addDoc(collection(db,'games'),{
+            players:[inv.fromUid,inv.toUid],
+            board:Array(9).fill(null),
+            turn:Math.random()<0.5?inv.fromUid:inv.toUid,
+            status:'playing',
+            symbols:{[inv.fromUid]:'X',[inv.toUid]:'O'},
+            createdAt:serverTimestamp()
+          });
+          await updateDoc(doc(db,'challenges',d.id),{status:'accepted',gameId:game.id});
+          enterGame(game.id);
+        };
+        const reject=document.createElement('button'); reject.textContent='Reject';
+        reject.onclick=()=>updateDoc(doc(db,'challenges',d.id),{status:'rejected'});
+        div.appendChild(accept); div.appendChild(reject);
+        invitesDiv.appendChild(div);
+      });
+    });
+  }
+
   function enterGame(id){
     currentGameId=id;
     show(gameView);
@@ -246,7 +312,7 @@
     listenChat();
   }
 
-  loginBtn.onclick=()=> signInWithEmailAndPassword(auth,emailEl.value,passEl.value);
+  loginBtn.onclick=()=>signInWithEmailAndPassword(auth,emailEl.value,passEl.value);
   registerBtn.onclick=async()=>{
     const {user}=await createUserWithEmailAndPassword(auth,emailEl.value,passEl.value);
     await updateProfile(user,{displayName:unameEl.value});
@@ -254,6 +320,7 @@
   };
   logoutBtn.onclick=()=>signOut(auth);
   quickMatchBtn.onclick=quickMatch;
+  searchBtn.onclick=()=>{ const u=searchUsernameEl.value.trim(); if(u) searchByUsername(u); };
   backBtn.onclick=()=>{ show(lobbyView); if(activeGameUnsub)activeGameUnsub(); if(chatUnsub)chatUnsub(); };
 
   onAuthStateChanged(auth,async(u)=>{
@@ -263,6 +330,7 @@
     meU.textContent=userProfile.username;
     meE.textContent=u.email;
     show(lobbyView);
+    listenInvites();
   });
 </script>
 </body>
