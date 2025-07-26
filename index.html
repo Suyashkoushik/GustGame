@@ -255,15 +255,29 @@
     }
   }
 
-  async function searchByUsername(username){
-    searchResult.innerHTML='Searching...';
-    const qUsers=query(collection(db,'users'),where('usernameLower','==',username.toLowerCase()),limit(1));
-    const res=await getDocs(qUsers);
-    if(res.empty){ searchResult.textContent='No user found.'; return; }
-    const userDoc=res.docs[0]; const user=userDoc.data();
-    searchResult.innerHTML=`Found: ${user.username} <button id="challengeBtn">Challenge</button>`;
-    document.getElementById('challengeBtn').onclick=()=>sendChallenge(userDoc.id,user.username);
+ async function searchByUsername(username) {
+  if (!username) return;
+  searchResult.innerHTML = 'Searching...';
+
+  const qUsers = query(
+    collection(db, 'users'),
+    where('usernameLower', '==', username.toLowerCase()),
+    limit(1)
+  );
+
+  const res = await getDocs(qUsers);
+
+  if (res.empty) {
+    searchResult.textContent = `User '${username}' not found.`;
+    return;
   }
+
+  const userDoc = res.docs[0];
+  const user = userDoc.data();
+  searchResult.innerHTML = `Found: ${user.username} <button id="challengeBtn">Challenge</button>`;
+  document.getElementById('challengeBtn').onclick = () => sendChallenge(userDoc.id, user.username);
+}
+
 
   async function sendChallenge(toUid,toUsername){
     if(toUid===currentUser.uid){alert('Cannot challenge yourself!');return;}
@@ -313,11 +327,28 @@
   }
 
   loginBtn.onclick=()=>signInWithEmailAndPassword(auth,emailEl.value,passEl.value);
-  registerBtn.onclick=async()=>{
-    const {user}=await createUserWithEmailAndPassword(auth,emailEl.value,passEl.value);
-    await updateProfile(user,{displayName:unameEl.value});
-    userProfile=await ensureUserProfile(user);
-  };
+ registerBtn.onclick = async () => {
+  const username = unameEl.value.trim();
+  if (!username) {
+    alert("Please enter a username!");
+    return;
+  }
+
+  const { user } = await createUserWithEmailAndPassword(auth, emailEl.value, passEl.value);
+  await updateProfile(user, { displayName: username });
+
+  // Store user data
+  await setDoc(doc(db, 'users', user.uid), {
+    uid: user.uid,
+    email: user.email,
+    username,
+    usernameLower: username.toLowerCase(),
+    createdAt: serverTimestamp(),
+  });
+
+  userProfile = { uid: user.uid, email: user.email, username };
+};
+
   logoutBtn.onclick=()=>signOut(auth);
   quickMatchBtn.onclick=quickMatch;
   searchBtn.onclick=()=>{ const u=searchUsernameEl.value.trim(); if(u) searchByUsername(u); };
