@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Multiplayer Tic‑Tac‑Toe + Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background:#0e0e0e; color:#fff; margin:0; padding:0; display:flex; flex-direction:column; align-items:center; }
+    h1 { text-align:center; margin-top:1rem; }
+    section { max-width: 700px; width: 100%; padding: 1rem; }
+
+    input, button { padding:.5rem; border:none; border-radius:4px; }
+    input { flex:1; }
+    button { background:#1db954; color:#fff; transition:0.2s; }
+    button:hover { background:#18a349; transform: scale(1.05); }
+
+    .hidden { display:none; }
+    .row { display:flex; gap:.5rem; margin-bottom:.5rem; }
+
+    /* Game Board */
+    #board { display:grid; grid-template-columns:repeat(3,100px); gap:6px; margin:1rem auto; }
+    .cell {
+      width:100px; height:100px; background:#222; display:flex; align-items:center; justify-content:center;
+      font-size:3rem; color:#fff; border-radius:8px; cursor:pointer;
+      transition: transform 0.2s ease, background 0.2s;
+    }
+    .cell:hover { background:#333; transform:scale(1.05); }
+    .disabled { pointer-events:none; opacity:0.5; }
+
+    #status { margin:0.5rem; font-weight:600; text-align:center; }
+
+    /* Chat */
+    #chat-container { background:#111; padding:10px; border-radius:8px; max-width:350px; margin:0 auto; }
+    #messages { height:150px; overflow-y:auto; background:#222; padding:5px; border-radius:6px; margin-bottom:.5rem; font-size:0.9rem; }
+    .msg { margin:2px 0; padding:2px 4px; border-bottom:1px solid #333; }
+    .msg-me { color:#1db954; }
+    .msg-opp { color:#ccc; }
+  </style>
+</head>
+<body>
+  <h1>🔥 Tic‑Tac‑Toe + Chat</h1>
+
+  <!-- AUTH -->
+  <section id="auth-view">
+    <h2>Login / Register</h2>
+    <div class="row">
+      <input id="email" placeholder="email@example.com" type="email"/>
+      <input id="password" placeholder="password" type="password"/>
+    </div>
+    <div class="row">
+      <input id="username" placeholder="username (for register only)"/>
+    </div>
+    <div class="row">
+      <button id="loginBtn">Login</button>
+      <button id="registerBtn">Register</button>
+    </div>
+  </section>
+
+  <!-- LOBBY -->
+  <section id="lobby-view" class="hidden">
+    <p>Logged in as <b id="me-username"></b> (<code id="me-email"></code>)</p>
+    <button id="logoutBtn">Logout</button>
+
+    <h2>Play</h2>
+    <button id="quickMatchBtn">Quick Match</button>
+  </section>
+
+  <!-- GAME -->
+  <section id="game-view" class="hidden">
+    <button id="backToLobby">← Back</button>
+    <div id="status"></div>
+    <div id="board"></div>
+
+    <!-- CHAT -->
+    <div id="chat-container">
+      <div id="messages"></div>
+      <div class="row">
+        <input id="chatInput" placeholder="Type message..."/>
+        <button id="sendBtn">Send</button>
+      </div>
+    </div>
+  </section>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, onSnapshot, serverTimestamp, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCvUJuMrfxnF6vRp97TiE3vFTwUH-jcDvc",
+    authDomain: "gustgame-1509e.firebaseapp.com",
+    projectId: "gustgame-1509e",
+    storageBucket: "gustgame-1509e.firebasestorage.app",
+    messagingSenderId: "826073677202",
+    appId: "1:826073677202:web:b0e1c96a6ad4706661554b",
+    measurementId: "G-HQ3GM4D2Y3"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const authView = document.getElementById('auth-view');
+  const lobbyView = document.getElementById('lobby-view');
+  const gameView = document.getElementById('game-view');
+  const emailEl = document.getElementById('email');
+  const passEl = document.getElementById('password');
+  const unameEl = document.getElementById('username');
+  const meU = document.getElementById('me-username');
+  const meE = document.getElementById('me-email');
+  const loginBtn = document.getElementById('loginBtn');
+  const registerBtn = document.getElementById('registerBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const quickMatchBtn = document.getElementById('quickMatchBtn');
+  const backBtn = document.getElementById('backToLobby');
+  const boardEl = document.getElementById('board');
+  const statusEl = document.getElementById('status');
+
+  // Chat
+  const msgDiv = document.getElementById('messages');
+  const chatInput = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  let currentUser=null, userProfile=null, currentGameId=null, mySymbol=null, activeGameUnsub=null, chatUnsub=null;
+
+  function show(v) {
+    [authView,lobbyView,gameView].forEach(s=>s.classList.add('hidden'));
+    v.classList.remove('hidden');
+  }
+
+  async function ensureUserProfile(u) {
+    const r = doc(db,'users',u.uid);
+    const s = await getDoc(r);
+    if(!s.exists()){
+      const username = unameEl.value.trim() || u.email.split('@')[0];
+      await setDoc(r,{ uid:u.uid,email:u.email,username,createdAt:serverTimestamp() });
+      return {uid:u.uid,email:u.email,username};
+    }
+    return s.data();
+  }
+
+  function renderBoard(board, myTurn){
+    boardEl.innerHTML='';
+    board.forEach((v,i)=>{
+      const c=document.createElement('div');
+      c.className='cell'+(!myTurn||v?' disabled':'');
+      c.textContent=v||'';
+      c.onclick=()=>{ if(myTurn&&!v) makeMove(i); };
+      boardEl.appendChild(c);
+    });
+  }
+
+  function winner(board){
+    const lines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    for(const [a,b,c] of lines) if(board[a]&&board[a]===board[b]&&board[a]===board[c]) return board[a];
+    return board.every(Boolean)?'tie':null;
+  }
+
+  async function makeMove(i){
+    const g=await getDoc(doc(db,'games',currentGameId));
+    if(!g.exists())return;
+    const data=g.data();
+    if(data.turn!==currentUser.uid)return;
+    const b=data.board.slice();
+    if(b[i])return;
+    b[i]=mySymbol;
+    const w=winner(b);
+    await updateDoc(doc(db,'games',currentGameId),{
+      board:b,
+      turn:data.players.find(p=>p!==currentUser.uid),
+      status:w?'done':'playing',
+      winner:w==='tie'?'tie':(w?currentUser.uid:null),
+      updatedAt:serverTimestamp()
+    });
+  }
+
+  function listenGame(id){
+    if(activeGameUnsub) activeGameUnsub();
+    activeGameUnsub = onSnapshot(doc(db,'games',id),(snap)=>{
+      if(!snap.exists()) return;
+      const g=snap.data();
+      mySymbol=g.symbols[currentUser.uid];
+      const isMyTurn=g.turn===currentUser.uid;
+      statusEl.textContent=g.status==='done'
+        ? (g.winner==='tie'?'Tie!':(g.winner===currentUser.uid?'You win!':'You lose!'))
+        : (isMyTurn?'Your turn':'Opponent turn');
+      renderBoard(g.board,isMyTurn);
+    });
+  }
+
+  // ---- Chat ----
+  function listenChat(){
+    if(chatUnsub) chatUnsub();
+    const q = query(collection(db,'games',currentGameId,'chat'),orderBy('createdAt'));
+    chatUnsub=onSnapshot(q,(snap)=>{
+      msgDiv.innerHTML='';
+      snap.forEach(m=>{
+        const d=m.data();
+        const div=document.createElement('div');
+        div.className='msg '+(d.uid===currentUser.uid?'msg-me':'msg-opp');
+        div.textContent=d.username+': '+d.text;
+        msgDiv.appendChild(div);
+      });
+      msgDiv.scrollTop=msgDiv.scrollHeight;
+    });
+  }
+  async function sendMsg(){
+    const text=chatInput.value.trim();
+    if(!text)return;
+    chatInput.value='';
+    await addDoc(collection(db,'games',currentGameId,'chat'),{
+      uid:currentUser.uid,
+      username:userProfile.username,
+      text,
+      createdAt:serverTimestamp()
+    });
+  }
+  sendBtn.onclick=sendMsg;
+  chatInput.addEventListener('keyup',(e)=>{ if(e.key==='Enter')sendMsg(); });
+
+  async function quickMatch(){
+    const q=await getDocs(query(collection(db,'queues'),where('available','==',true),limit(1)));
+    let opp=null;
+    q.forEach(d=>{ if(d.id!==currentUser.uid) opp=d; });
+    if(opp){
+      const uids=[currentUser.uid,opp.id];
+      const game=await addDoc(collection(db,'games'),{
+        players:uids, board:Array(9).fill(null), turn:uids[Math.floor(Math.random()*2)],
+        status:'playing', symbols:{[uids[0]]:'X',[uids[1]]:'O'},
+        createdAt:serverTimestamp()
+      });
+      await updateDoc(doc(db,'queues',opp.id),{available:false,gameId:game.id});
+      enterGame(game.id);
+    }else{
+      await setDoc(doc(db,'queues',currentUser.uid),{available:true});
+      alert('Waiting for opponent...');
+      onSnapshot(doc(db,'queues',currentUser.uid),(snap)=>{
+        const d=snap.data(); if(d&&d.gameId) enterGame(d.gameId);
+      });
+    }
+  }
+
+  function enterGame(id){
+    currentGameId=id;
+    show(gameView);
+    listenGame(id);
+    listenChat();
+  }
+
+  loginBtn.onclick=()=> signInWithEmailAndPassword(auth,emailEl.value,passEl.value);
+  registerBtn.onclick=async()=>{
+    const {user}=await createUserWithEmailAndPassword(auth,emailEl.value,passEl.value);
+    await updateProfile(user,{displayName:unameEl.value});
+    userProfile=await ensureUserProfile(user);
+  };
+  logoutBtn.onclick=()=>signOut(auth);
+  quickMatchBtn.onclick=quickMatch;
+  backBtn.onclick=()=>{ show(lobbyView); if(activeGameUnsub)activeGameUnsub(); if(chatUnsub)chatUnsub(); };
+
+  onAuthStateChanged(auth,async(u)=>{
+    currentUser=u;
+    if(!u){ show(authView); return; }
+    userProfile=await ensureUserProfile(u);
+    meU.textContent=userProfile.username;
+    meE.textContent=u.email;
+    show(lobbyView);
+  });
+</script>
+</body>
+</html>
