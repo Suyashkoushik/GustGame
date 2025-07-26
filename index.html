@@ -1,85 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Multiplayer Tic‑Tac‑Toe + Chat</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tic‑Tac‑Toe</title>
   <style>
-    :root {
-      color-scheme: dark;
-      --accent:#1db954;
-      --bg:#0e0e0e;
-      --bg2:#111;
-      --bg3:#222;
-      --text:#fff;
-      --muted:#aaa;
-    }
-    body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-    }
-    h1 { margin: 1rem 0; text-align: center; }
-    section { width: 100%; max-width: 780px; padding: 1rem; }
-    input, button {
-      padding: .6rem .75rem; border: none; border-radius: 6px; font-size: 1rem;
-    }
-    input { background: var(--bg3); color: var(--text); flex: 1; }
-    button {
-      background: var(--accent); color: #fff; cursor: pointer; transition: .15s;
-    }
-    button:hover { filter: brightness(1.05); transform: translateY(-1px); }
-    .row { display: flex; gap: .5rem; margin-bottom: .5rem; }
-    .hidden { display: none !important; }
-
-    /* Board */
-    #board { display: grid; grid-template-columns: repeat(3, 110px); gap: 8px; margin: 1rem auto; }
-    .cell {
-      width: 110px; height: 110px; background: var(--bg3); border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 3.2rem; cursor: pointer; user-select: none;
-      transition: transform .15s, background .15s;
-    }
-    .cell:hover { transform: scale(1.05); background: #2c2c2c; }
-    .cell.disabled { pointer-events: none; opacity: .5; transform: none; }
-
-    #status { text-align: center; font-weight: 600; margin: .5rem 0 1rem; }
-
-    /* Chat */
-    #chat-container { background: var(--bg2); padding: 10px; border-radius: 8px; max-width: 380px; margin: 0 auto; }
-    #messages {
-      height: 180px; overflow-y: auto; background: var(--bg3);
-      padding: 6px; border-radius: 6px; margin-bottom: .5rem; font-size: .9rem;
-      scroll-behavior: smooth;
-    }
-    .msg { margin: 2px 0; padding: 2px 4px; border-bottom: 1px solid #333; word-break: break-word; }
-    .msg-me { color: var(--accent); }
-    .msg-opp { color: #ddd; }
-
-    #invites > div {
-      background: var(--bg3); padding: 6px; border-radius: 6px; margin-bottom: 6px;
-      display: flex; align-items: center; gap: .5rem; justify-content: space-between;
-    }
-    small.muted { color: var(--muted); }
+    /* keep it super small – style it however you like */
+    .hidden{display:none}
+    #board{display:grid;grid-template-columns:repeat(3,110px);gap:8px;margin:1rem auto}
+    .cell{width:110px;height:110px;background:#222;color:#fff;border-radius:10px;
+      display:flex;align-items:center;justify-content:center;font-size:3rem;cursor:pointer}
+    .cell.disabled{opacity:.5;pointer-events:none}
+    #messages{height:180px;overflow:auto;background:#222;margin-bottom:.5rem;padding:6px;border-radius:6px}
+    .msg-me{color:#1db954}
+    .msg-opp{color:#ddd}
+    .row{display:flex;gap:.5rem;margin-bottom:.5rem}
   </style>
 </head>
 <body>
-  <h1>🔥 Tic‑Tac‑Toe + Chat (Firebase)</h1>
-
-  <!-- AUTH -->
   <section id="auth-view">
-    <h2>Login / Register</h2>
     <div class="row">
-      <input id="email" placeholder="email@example.com" type="email" autocomplete="email" />
-      <input id="password" placeholder="password" type="password" autocomplete="current-password" />
+      <input id="email" type="email" placeholder="email" />
+      <input id="password" type="password" placeholder="password" />
     </div>
     <div class="row">
-      <input id="username" placeholder="username (register only)" autocomplete="nickname" />
+      <input id="username" placeholder="username (register only)" />
     </div>
     <div class="row">
       <button id="loginBtn">Login</button>
@@ -87,20 +32,16 @@
     </div>
   </section>
 
-  <!-- LOBBY -->
   <section id="lobby-view" class="hidden">
     <p>Logged in as <b id="me-username"></b> (<code id="me-email"></code>)</p>
-    <div class="row">
-      <button id="logoutBtn">Logout</button>
-    </div>
+    <button id="logoutBtn">Logout</button>
 
     <h2>Play</h2>
     <button id="quickMatchBtn">Quick Match</button>
-    <small class="muted">Open two browsers/accounts to test.</small>
 
-    <h3>Challenge by Username</h3>
+    <h3>Challenge by username</h3>
     <div class="row">
-      <input id="searchUsername" placeholder="Enter username…" />
+      <input id="searchUsername" placeholder="username…" />
       <button id="searchBtn">Search</button>
     </div>
     <div id="searchResult"></div>
@@ -109,13 +50,11 @@
     <div id="invites"></div>
   </section>
 
-  <!-- GAME -->
   <section id="game-view" class="hidden">
     <button id="backToLobby">← Back</button>
     <div id="status"></div>
     <div id="board"></div>
 
-    <!-- CHAT -->
     <div id="chat-container">
       <div id="messages"></div>
       <div class="row">
@@ -125,411 +64,7 @@
     </div>
   </section>
 
-<script type="module">
-  // ---- Firebase imports ----
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-  import {
-    getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-    onAuthStateChanged, signOut, updateProfile
-  } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-  import {
-    getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc,
-    onSnapshot, serverTimestamp, getDocs, query, where, limit, orderBy, deleteDoc
-  } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-
-  // ---- Config ----
-  const firebaseConfig = {
-    apiKey: "AIzaSyCvUJuMrfxnF6vRp97TiE3vFTwUH-jcDvc",
-    authDomain: "gustgame-1509e.firebaseapp.com",
-    projectId: "gustgame-1509e",
-    storageBucket: "gustgame-1509e.firebasestorage.app",
-    messagingSenderId: "826073677202",
-    appId: "1:826073677202:web:b0e1c96a6ad4706661554b",
-    measurementId: "G-HQ3GM4D2Y3"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db   = getFirestore(app);
-
-  // ---- DOM ----
-  const authView  = document.getElementById('auth-view');
-  const lobbyView = document.getElementById('lobby-view');
-  const gameView  = document.getElementById('game-view');
-
-  const emailEl   = document.getElementById('email');
-  const passEl    = document.getElementById('password');
-  const unameEl   = document.getElementById('username');
-
-  const meU       = document.getElementById('me-username');
-  const meE       = document.getElementById('me-email');
-
-  const loginBtn  = document.getElementById('loginBtn');
-  const registerBtn = document.getElementById('registerBtn');
-  const logoutBtn = document.getElementById('logoutBtn');
-
-  const quickMatchBtn = document.getElementById('quickMatchBtn');
-  const searchUsernameEl = document.getElementById('searchUsername');
-  const searchBtn    = document.getElementById('searchBtn');
-  const searchResult = document.getElementById('searchResult');
-  const invitesDiv   = document.getElementById('invites');
-
-  const backBtn   = document.getElementById('backToLobby');
-  const boardEl   = document.getElementById('board');
-  const statusEl  = document.getElementById('status');
-
-  const msgDiv    = document.getElementById('messages');
-  const chatInput = document.getElementById('chatInput');
-  const sendBtn   = document.getElementById('sendBtn');
-
-  // ---- State ----
-  let currentUser = null;
-  let userProfile = null;
-  let currentGameId = null;
-  let mySymbol = null;
-
-  let activeGameUnsub = null;
-  let chatUnsub = null;
-  let invitesUnsub = null;
-  let myQueueUnsub = null;
-
-  // ---- Helpers ----
-  function show(view) {
-    [authView, lobbyView, gameView].forEach(v => v.classList.add('hidden'));
-    view.classList.remove('hidden');
-  }
-
-  async function ensureUserProfile(u) {
-    const ref = doc(db, 'users', u.uid);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
-      const username = (unameEl.value.trim() || u.displayName || u.email.split('@')[0]).trim();
-      const usernameLower = username.toLowerCase();
-
-      // (Optional) uniqueness check
-      const qCheck = query(collection(db, 'users'), where('usernameLower', '==', usernameLower), limit(1));
-      const found  = await getDocs(qCheck);
-      if (!found.empty) {
-        throw new Error('Username already taken. Please register with a different one.');
-      }
-
-      await setDoc(ref, {
-        uid: u.uid,
-        email: u.email,
-        username,
-        usernameLower,
-        createdAt: serverTimestamp()
-      });
-      return { uid: u.uid, email: u.email, username, usernameLower };
-    }
-    return snap.data();
-  }
-
-  function renderBoard(board, myTurn) {
-    boardEl.innerHTML = '';
-    board.forEach((v, i) => {
-      const c = document.createElement('div');
-      c.className = 'cell' + (!myTurn || v ? ' disabled' : '');
-      c.textContent = v || '';
-      c.onclick = () => {
-        if (myTurn && !v) makeMove(i);
-      };
-      boardEl.appendChild(c);
-    });
-  }
-
-  function calcWinner(board) {
-    const lines = [
-      [0,1,2], [3,4,5], [6,7,8],
-      [0,3,6], [1,4,7], [2,5,8],
-      [0,4,8], [2,4,6]
-    ];
-    for (const [a,b,c] of lines) {
-      if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
-    }
-    if (board.every(Boolean)) return 'tie';
-    return null;
-  }
-
-  async function makeMove(index) {
-    const ref = doc(db, 'games', currentGameId);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return;
-    const g = snap.data();
-    if (g.status !== 'playing') return;
-    if (g.turn !== currentUser.uid) return;
-
-    const board = g.board.slice();
-    if (board[index]) return;
-
-    board[index] = mySymbol;
-    const w = calcWinner(board);
-
-    const updates = {
-      board,
-      updatedAt: serverTimestamp()
-    };
-
-    if (w) {
-      updates.status = 'done';
-      updates.winner = (w === 'tie') ? 'tie' : currentUser.uid;
-    } else {
-      updates.turn = g.players.find(p => p !== currentUser.uid);
-    }
-
-    await updateDoc(ref, updates);
-  }
-
-  function listenGame(gameId) {
-    if (activeGameUnsub) activeGameUnsub();
-    activeGameUnsub = onSnapshot(doc(db, 'games', gameId), (snap) => {
-      if (!snap.exists()) {
-        statusEl.textContent = 'Game not found.';
-        return;
-      }
-      const g = snap.data();
-      mySymbol = g.symbols[currentUser.uid];
-      const isMyTurn = g.turn === currentUser.uid;
-
-      if (g.status === 'done') {
-        statusEl.textContent = (g.winner === 'tie')
-          ? 'Tie!'
-          : (g.winner === currentUser.uid ? 'You win!' : 'You lose!');
-        renderBoard(g.board, false);
-      } else {
-        statusEl.textContent = isMyTurn ? 'Your turn' : 'Opponent turn';
-        renderBoard(g.board, isMyTurn);
-      }
-    });
-  }
-
-  function listenChat() {
-    if (chatUnsub) chatUnsub();
-    const qChat = query(collection(db, 'games', currentGameId, 'chat'), orderBy('createdAt'));
-    chatUnsub = onSnapshot(qChat, (snap) => {
-      msgDiv.innerHTML = '';
-      snap.forEach(m => {
-        const d = m.data();
-        const div = document.createElement('div');
-        div.className = 'msg ' + (d.uid === currentUser.uid ? 'msg-me' : 'msg-opp');
-        div.textContent = `${d.username}: ${d.text}`;
-        msgDiv.appendChild(div);
-      });
-      msgDiv.scrollTop = msgDiv.scrollHeight;
-    });
-  }
-
-  async function sendMsg() {
-    const text = chatInput.value.trim();
-    if (!text || !currentGameId) return;
-    chatInput.value = '';
-    await addDoc(collection(db, 'games', currentGameId, 'chat'), {
-      uid: currentUser.uid,
-      username: userProfile.username,
-      text,
-      createdAt: serverTimestamp()
-    });
-  }
-
-  sendBtn.onclick = sendMsg;
-  chatInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') sendMsg(); });
-
-  async function quickMatch() {
-    // Put *your* doc in the queue first (overwrite old)
-    const myQRef = doc(db, 'queues', currentUser.uid);
-    await setDoc(myQRef, { uid: currentUser.uid, username: userProfile.username, available: true, createdAt: serverTimestamp() });
-
-    // Find first available opponent (not me)
-    const qOpp = query(collection(db, 'queues'), where('available', '==', true), orderBy('createdAt'), limit(10));
-    const oppSnap = await getDocs(qOpp);
-    let opponent = null;
-    oppSnap.forEach(d => {
-      const v = d.data();
-      if (v.uid !== currentUser.uid && !opponent) opponent = v;
-    });
-
-    if (opponent) {
-      // Create game
-      const uids = [currentUser.uid, opponent.uid];
-      const first = Math.random() < 0.5 ? uids[0] : uids[1];
-      const gameRef = await addDoc(collection(db, 'games'), {
-        players: uids,
-        symbols: { [uids[0]]: 'X', [uids[1]]: 'O' },
-        board: Array(9).fill(null),
-        turn: first,
-        status: 'playing',
-        winner: null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-
-      // Clean queues
-      await updateDoc(doc(db, 'queues', opponent.uid), { available: false, gameId: gameRef.id });
-      await updateDoc(myQRef, { available: false, gameId: gameRef.id });
-
-      // (optional) delete to keep it clean
-      await deleteDoc(doc(db, 'queues', opponent.uid));
-      await deleteDoc(myQRef);
-
-      enterGame(gameRef.id);
-    } else {
-      // Wait to be paired
-      if (myQueueUnsub) myQueueUnsub();
-      myQueueUnsub = onSnapshot(myQRef, async (snap) => {
-        const v = snap.data();
-        if (v && v.gameId) {
-          if (myQueueUnsub) myQueueUnsub();
-          await deleteDoc(myQRef).catch(()=>{});
-          enterGame(v.gameId);
-        }
-      });
-      alert('Waiting for opponent… keep this tab open.');
-    }
-  }
-
-  async function searchByUsername(username) {
-    searchResult.innerHTML = 'Searching…';
-    const qUsers = query(collection(db, 'users'), where('usernameLower', '==', username.toLowerCase()), limit(1));
-    const res = await getDocs(qUsers);
-    if (res.empty) {
-      searchResult.textContent = `User '${username}' not found.`;
-      return;
-    }
-    const userDoc = res.docs[0];
-    const user = userDoc.data();
-    searchResult.innerHTML = `Found: <b>${user.username}</b> <button id="challengeBtn">Challenge</button>`;
-    document.getElementById('challengeBtn').onclick = () => sendChallenge(userDoc.id, user.username);
-  }
-
-  async function sendChallenge(toUid, toUsername) {
-    if (toUid === currentUser.uid) {
-      alert('Cannot challenge yourself!');
-      return;
-    }
-    await addDoc(collection(db, 'challenges'), {
-      fromUid: currentUser.uid,
-      fromUsername: userProfile.username,
-      toUid,
-      toUsername,
-      status: 'pending',
-      createdAt: serverTimestamp()
-    });
-    alert('Challenge sent!');
-  }
-
-  function listenInvites() {
-    if (invitesUnsub) invitesUnsub();
-    const qInv = query(
-      collection(db, 'challenges'),
-      where('toUid', '==', currentUser.uid),
-      where('status', '==', 'pending'),
-      orderBy('createdAt', 'desc')
-    );
-    invitesUnsub = onSnapshot(qInv, (snap) => {
-      invitesDiv.innerHTML = '';
-      snap.forEach(d => {
-        const inv = d.data();
-        const div = document.createElement('div');
-        div.innerHTML = `Invite from <b>${inv.fromUsername}</b>`;
-        const accept = document.createElement('button');
-        accept.textContent = 'Accept';
-        accept.onclick = async () => {
-          const uids = [inv.fromUid, inv.toUid];
-          const first = Math.random() < 0.5 ? uids[0] : uids[1];
-          const gameRef = await addDoc(collection(db, 'games'), {
-            players: uids,
-            symbols: { [uids[0]]: 'X', [uids[1]]: 'O' },
-            board: Array(9).fill(null),
-            turn: first,
-            status: 'playing',
-            winner: null,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          });
-          await updateDoc(doc(db, 'challenges', d.id), { status: 'accepted', gameId: gameRef.id });
-          enterGame(gameRef.id);
-        };
-        const reject = document.createElement('button');
-        reject.textContent = 'Reject';
-        reject.onclick = () => updateDoc(doc(db, 'challenges', d.id), { status: 'rejected' });
-        div.appendChild(accept);
-        div.appendChild(reject);
-        invitesDiv.appendChild(div);
-      });
-    });
-  }
-
-  function enterGame(gameId) {
-    currentGameId = gameId;
-    show(gameView);
-    listenGame(gameId);
-    listenChat();
-  }
-
-  // ---- Events ----
-  registerBtn.onclick = async () => {
-    try {
-      const username = unameEl.value.trim();
-      if (!username) {
-        alert('Please enter a username to register.');
-        return;
-      }
-      const { user } = await createUserWithEmailAndPassword(auth, emailEl.value, passEl.value);
-      await updateProfile(user, { displayName: username });
-      userProfile = await ensureUserProfile(user);
-    } catch (e) {
-      alert(e.message);
-    }
-  };
-
-  loginBtn.onclick = async () => {
-    try {
-      await signInWithEmailAndPassword(auth, emailEl.value, passEl.value);
-    } catch (e) {
-      alert(e.message);
-    }
-  };
-
-  logoutBtn.onclick = async () => {
-    await signOut(auth);
-  };
-
-  quickMatchBtn.onclick = quickMatch;
-
-  searchBtn.onclick = () => {
-    const u = searchUsernameEl.value.trim();
-    if (u) searchByUsername(u);
-  };
-
-  backBtn.onclick = () => {
-    if (activeGameUnsub) activeGameUnsub();
-    if (chatUnsub) chatUnsub();
-    currentGameId = null;
-    mySymbol = null;
-    show(lobbyView);
-  };
-
-  // ---- Auth listener ----
-  onAuthStateChanged(auth, async (u) => {
-    currentUser = u;
-    if (!u) {
-      show(authView);
-      if (invitesUnsub) invitesUnsub();
-      invitesUnsub = null;
-      return;
-    }
-    try {
-      userProfile = await ensureUserProfile(u);
-    } catch (e) {
-      alert(e.message);
-      await signOut(auth);
-      return;
-    }
-    meU.textContent = userProfile.username;
-    meE.textContent = u.email;
-    show(lobbyView);
-    listenInvites();
-  });
-</script>
+  <!-- Load the JS you got from me -->
+  <script type="module" src="./game.js"></script>
 </body>
 </html>
