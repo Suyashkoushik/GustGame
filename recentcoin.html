@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Auto Blog Code Maker – New Crypto Coins</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    button { padding: 10px 20px; margin-bottom: 20px; }
+    textarea { width: 100%; height: 400px; }
+    .loading { font-weight: bold; color: green; }
+  </style>
+</head>
+<body>
+
+<h2>🪙 Auto Blog HTML Generator (Recently Added Coins)</h2>
+
+<button onclick="generateBlogCode()">Generate Blog HTML</button>
+<p id="status" class="loading"></p>
+
+<textarea id="blogOutput" placeholder="Blog HTML will appear here..."></textarea>
+
+<script>
+async function generateBlogCode() {
+  const output = document.getElementById("blogOutput");
+  const status = document.getElementById("status");
+  status.textContent = "Fetching recent coins from CoinGecko...";
+  output.value = "";
+
+  try {
+    const res = await fetch("https://api.coingecko.com/api/v3/coins/list?include_platform=false");
+    const recentRes = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_asc&per_page=10&page=1&sparkline=false");
+    const coins = await recentRes.json();
+
+    let html = `<h2>🆕 Recently Added Coins (Auto-generated)</h2>\n<ul>\n`;
+
+    coins.forEach(coin => {
+      html += `
+  <li>
+    <strong>${coin.name} (${coin.symbol.toUpperCase()})</strong><br>
+    Price: $${coin.current_price} <br>
+    Market Cap: $${coin.market_cap.toLocaleString()} <br>
+    <img src="${coin.image}" alt="${coin.name}" width="32" height="32"><br>
+    <a href="https://www.coingecko.com/en/coins/${coin.id}" target="_blank">🔗 View on CoinGecko</a>
+  </li>\n<hr>`;
+    });
+
+    html += "</ul>\n<p>⏱ Updated: " + new Date().toLocaleString() + "</p>";
+
+    output.value = html;
+    status.textContent = "✅ Blog HTML generated!";
+  } catch (error) {
+    status.textContent = "❌ Error fetching data. Please try again.";
+    console.error(error);
+  }
+}
+</script>
+
+</body>
+</html>
