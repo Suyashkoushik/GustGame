@@ -1,123 +1,350 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Crypto Pulse - Daily Gainers, Losers, New Coins & News</title>
-  <meta name="description" content="Live updates of top gaining, losing, and newly listed cryptocurrencies with the latest crypto news.">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Crypto Blog Post Builder — Gainers, Losers, New, News</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f4f4; }
-    header { background: #222; color: #fff; padding: 15px; text-align: center; font-size: 1.5em; }
-    section { background: #fff; margin: 20px auto; padding: 15px; max-width: 900px; border-radius: 10px; }
-    h2 { border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-bottom: 15px; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-    table, th, td { border: 1px solid #ddd; }
-    th, td { padding: 8px; text-align: left; }
-    th { background: #eee; }
-    img { vertical-align: middle; width: 24px; height: 24px; border-radius: 50%; margin-right: 5px; }
-    .news-item { margin-bottom: 10px; }
-    .news-item a { text-decoration: none; color: #0073e6; font-weight: bold; }
+    body{font-family:Arial,Helvetica,sans-serif;margin:18px;background:#f7f8fb}
+    h1{font-size:20px}
+    .controls{margin:12px 0}
+    button{padding:8px 12px;margin:6px 6px 6px 0;border-radius:6px;border:1px solid #ccc;cursor:pointer}
+    button.primary{background:#0073e6;color:#fff;border-color:#0060c0}
+    .panel{background:#fff;border-radius:8px;padding:12px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+    .codeout{width:100%;height:220px;margin-top:8px;font-family:monospace;font-size:13px;padding:8px;white-space:pre;overflow:auto;border:1px dashed #ddd}
+    .meta{font-size:13px;color:#555;margin-top:6px}
+    .small{font-size:13px;color:#666}
+    .status{font-weight:600;color:#078000}
   </style>
 </head>
 <body>
+  <h1>Crypto Blogger Post Generator</h1>
+  <p class="small">Generates SEO-ready Blogger HTML blocks (Title + meta + content). Click <strong>Fetch & Build</strong>, then copy the block you want and paste into Blogger's HTML editor.</p>
 
-<header>🚀 Crypto Pulse - Gainers | Losers | New Coins | News</header>
+  <div class="controls">
+    <button id="btnFetch" class="primary">🔄 Fetch & Build</button>
+    <button id="btnCopyAll">📋 Copy All 4 Blocks</button>
+    <span id="status" class="status"></span>
+  </div>
 
-<section>
-  <h2>📈 Top Gaining Coins (24h)</h2>
-  <table id="gainers">
-    <tr><th>Coin</th><th>Price (USD)</th><th>Change (24h)</th></tr>
-  </table>
-</section>
+  <!-- Individual block containers -->
+  <div id="blocks">
+    <div class="panel" id="block-gainers">
+      <h3>📈 Top Gainers (24h)</h3>
+      <div class="meta" id="meta-gainers"></div>
+      <div class="codeout" id="out-gainers">Click "Fetch & Build" to generate.</div>
+      <div style="margin-top:8px">
+        <button class="copyBtn" data-target="out-gainers">📋 Copy Gainers HTML</button>
+      </div>
+    </div>
 
-<section>
-  <h2>📉 Top Losing Coins (24h)</h2>
-  <table id="losers">
-    <tr><th>Coin</th><th>Price (USD)</th><th>Change (24h)</th></tr>
-  </table>
-</section>
+    <div class="panel" id="block-losers">
+      <h3>📉 Top Losers (24h)</h3>
+      <div class="meta" id="meta-losers"></div>
+      <div class="codeout" id="out-losers">Click "Fetch & Build" to generate.</div>
+      <div style="margin-top:8px">
+        <button class="copyBtn" data-target="out-losers">📋 Copy Losers HTML</button>
+      </div>
+    </div>
 
-<section>
-  <h2>🆕 Newly Listed Coins</h2>
-  <table id="newCoins">
-    <tr><th>Coin</th><th>Symbol</th><th>Listed At</th></tr>
-  </table>
-</section>
+    <div class="panel" id="block-new">
+      <h3>🆕 Recently Added Coins</h3>
+      <div class="meta" id="meta-new"></div>
+      <div class="codeout" id="out-new">Click "Fetch & Build" to generate.</div>
+      <div style="margin-top:8px">
+        <button class="copyBtn" data-target="out-new">📋 Copy New Coins HTML</button>
+      </div>
+    </div>
 
-<section>
-  <h2>📰 Latest Crypto News</h2>
-  <div id="cryptoNews"></div>
-</section>
+    <div class="panel" id="block-news">
+      <h3>📰 Latest Crypto News (CoinTelegraph + CoinDesk)</h3>
+      <div class="meta" id="meta-news"></div>
+      <div class="codeout" id="out-news">Click "Fetch & Build" to generate.</div>
+      <div style="margin-top:8px">
+        <button class="copyBtn" data-target="out-news">📋 Copy News HTML</button>
+      </div>
+    </div>
+  </div>
 
 <script>
-// ========== Fetch Top Gainers ==========
-async function loadGainers() {
-  let res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_desc&per_page=5&page=1&sparkline=false');
-  let data = await res.json();
-  let table = document.getElementById("gainers");
-  data.forEach(coin => {
-    let row = `<tr>
-      <td><img src="${coin.image}"> ${coin.name} (${coin.symbol.toUpperCase()})</td>
-      <td>$${coin.current_price.toLocaleString()}</td>
-      <td style="color:green;">${coin.price_change_percentage_24h.toFixed(2)}%</td>
-    </tr>`;
-    table.innerHTML += row;
-  });
+/*
+  Crypto Blogger Post Generator
+  - Uses CoinGecko for coin lists and price changes
+  - Uses AllOrigins proxy to fetch CoinTelegraph and CoinDesk RSS feeds (for news)
+  - Produces 4 separate Blogger-ready HTML blocks (title, meta, content)
+  Notes:
+  - Paste output into Blogger post HTML view (not Compose view).
+  - If a proxy fails, the news block will include a friendly fallback.
+*/
+
+const statusEl = document.getElementById('status');
+const btnFetch = document.getElementById('btnFetch');
+const btnCopyAll = document.getElementById('btnCopyAll');
+
+function safeText(s){
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function getTodayDate(){
+  const d = new Date();
+  const opt = { year:'numeric', month:'long', day:'numeric' };
+  return d.toLocaleDateString(undefined,opt);
+}
+function getIsoDate(){ return new Date().toISOString().split('T')[0]; }
+
+// helper to build SEO meta tags for a single block (as string)
+function buildSEOTemplate(postTitle, description, imageUrl, canonicalUrl=''){
+  // returns head block for Blogger post (as string)
+  return `<!-- SEO meta for Blogger (paste in HTML) -->
+<title>${safeText(postTitle)}</title>
+<meta name="description" content="${safeText(description)}">
+<meta name="keywords" content="crypto, cryptocurrency, top gainers, top losers, new coins, crypto news, ${safeText(postTitle).replace(/\s+/g,', ')}">
+<meta property="og:title" content="${safeText(postTitle)}">
+<meta property="og:description" content="${safeText(description)}">
+<meta property="og:image" content="${safeText(imageUrl)}">
+<meta property="og:type" content="article">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${safeText(postTitle)}">
+<meta name="twitter:description" content="${safeText(description)}">
+<meta name="twitter:image" content="${safeText(imageUrl)}">
+${ canonicalUrl ? `<link rel="canonical" href="${safeText(canonicalUrl)}">` : '' }
+<!-- end SEO meta -->`;
 }
 
-// ========== Fetch Top Losers ==========
-async function loadLosers() {
-  let res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_asc&per_page=5&page=1&sparkline=false');
-  let data = await res.json();
-  let table = document.getElementById("losers");
-  data.forEach(coin => {
-    let row = `<tr>
-      <td><img src="${coin.image}"> ${coin.name} (${coin.symbol.toUpperCase()})</td>
-      <td>$${coin.current_price.toLocaleString()}</td>
-      <td style="color:red;">${coin.price_change_percentage_24h.toFixed(2)}%</td>
-    </tr>`;
-    table.innerHTML += row;
-  });
+// build a Blogger post body wrapper (so user can paste full post)
+function buildPostHtml(title, metaBlock, bodyHtml){
+  // Use a simple wrapping structure: meta tags + body HTML
+  // Blogger will normally add <html> etc; when pasting into post HTML view, it's ok.
+  return `<!-- Start Post: ${safeText(title)} -->
+${metaBlock}
+<h1>${safeText(title)}</h1>
+${bodyHtml}
+<!-- End Post: ${safeText(title)} -->`;
 }
 
-// ========== Fetch New Coins ==========
-async function loadNewCoins() {
-  let res = await fetch('https://api.coingecko.com/api/v3/coins/list?include_platform=false');
-  let data = await res.json();
-  let latest = data.slice(-5).reverse();
-  let table = document.getElementById("newCoins");
-  latest.forEach(coin => {
-    let row = `<tr>
-      <td>${coin.name}</td>
-      <td>${coin.symbol.toUpperCase()}</td>
-      <td>Recently Added</td>
-    </tr>`;
-    table.innerHTML += row;
-  });
+// copy helper
+async function copyText(text){
+  try {
+    await navigator.clipboard.writeText(text);
+    alert('✅ Copied to clipboard — paste into Blogger HTML view.');
+  } catch (e) {
+    // fallback: select area and execCommand
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('✅ Copied to clipboard (fallback). Paste into Blogger HTML view.');
+  }
 }
 
-// ========== Fetch Crypto News ==========
-async function loadNews() {
-  let res = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN');
-  let json = await res.json();
-  let news = json.Data.slice(0, 5);
-  let container = document.getElementById("cryptoNews");
-  news.forEach(n => {
-    let item = `<div class="news-item">
-      <a href="${n.url}" target="_blank">${n.title}</a><br>
-      <small>${new Date(n.published_on * 1000).toLocaleString()}</small>
-    </div>`;
-    container.innerHTML += item;
-  });
+// fetch coin markets from CoinGecko
+async function fetchCoinMarkets(order, per_page=10){
+  // order examples: 'price_change_percentage_24h_desc' etc.
+  const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=${encodeURIComponent(order)}&per_page=${per_page}&page=1&sparkline=false&price_change_percentage=24h`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('CoinGecko error: ' + res.status);
+  return res.json();
 }
 
-// Load all sections
-loadGainers();
-loadLosers();
-loadNewCoins();
-loadNews();
+// fetch coin list for recently added
+async function fetchCoinList(){
+  const url = 'https://api.coingecko.com/api/v3/coins/list?include_platform=false';
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('CoinGecko list error: ' + res.status);
+  return res.json();
+}
+
+// fetch RSS via AllOrigins proxy (no CORS)
+async function fetchRssViaAllorigins(rssUrl){
+  const proxy = 'https://api.allorigins.win/raw?url=';
+  const res = await fetch(proxy + encodeURIComponent(rssUrl));
+  if (!res.ok) throw new Error('Proxy RSS fetch failed: ' + res.status);
+  const text = await res.text();
+  return text;
+}
+
+// parse RSS string to items (returns [{title, link, pubDate, description}])
+function parseRssItems(xmlString, maxItems=5){
+  try {
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(xmlString, "application/xml");
+    const items = Array.from(xml.querySelectorAll('item')).slice(0,maxItems);
+    return items.map(it => ({
+      title: it.querySelector('title') ? it.querySelector('title').textContent : '',
+      link: it.querySelector('link') ? it.querySelector('link').textContent : (it.querySelector('guid') ? it.querySelector('guid').textContent : ''),
+      pubDate: it.querySelector('pubDate') ? it.querySelector('pubDate').textContent : '',
+      description: it.querySelector('description') ? it.querySelector('description').textContent : ''
+    }));
+  } catch(err){
+    console.warn('RSS parse error', err);
+    return [];
+  }
+}
+
+// build HTML table for coins
+function coinsToHtmlTable(coins, showChange=true){
+  let rows = coins.map(c => {
+    const change = (c.price_change_percentage_24h !== null && c.price_change_percentage_24h !== undefined)
+      ? `${c.price_change_percentage_24h.toFixed(2)}%` : 'N/A';
+    const changeColor = (c.price_change_percentage_24h > 0) ? 'green' : (c.price_change_percentage_24h < 0 ? 'red' : 'black');
+    return `<tr>
+      <td style="padding:8px"><img src="${safeText(c.image || '')}" width="28" height="28" style="vertical-align:middle;border-radius:50%;margin-right:8px"> <strong>${safeText(c.name)}</strong> <small>(${safeText((c.symbol||'').toUpperCase())})</small></td>
+      <td style="padding:8px">$${(typeof c.current_price === 'number')? c.current_price.toLocaleString(): safeText(String(c.current_price||'N/A'))}</td>
+      <td style="padding:8px;color:${changeColor}">${safeText(change)}</td>
+      <td style="padding:8px"><a href="https://www.coingecko.com/en/coins/${safeText(c.id||'')}" target="_blank">View</a></td>
+    </tr>`;  
+  }).join('\n');
+  return `<table style="width:100%;border-collapse:collapse;border:1px solid #e6e6e6">
+    <thead style="background:#fafafa"><tr><th style="padding:8px;text-align:left">Coin</th><th style="padding:8px">Price (USD)</th><th style="padding:8px">24h</th><th style="padding:8px">Link</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+// build new coins HTML (simple list)
+function newCoinsToHtmlList(list){
+  const rows = list.map(c => `<li style="margin:6px 0"><strong>${safeText(c.name)}</strong> <small>(${safeText(c.symbol.toUpperCase())})</small></li>`).join('\n');
+  return `<ul>${rows}</ul>`;
+}
+
+// news items to html
+function newsToHtml(items){
+  if (!items || items.length===0) return '<p>No news available right now.</p>';
+  const rows = items.map(n => `<div style="margin-bottom:12px">
+    <a href="${safeText(n.link)}" target="_blank" style="font-weight:700;color:#0b6bd6;text-decoration:none">${safeText(n.title)}</a><br>
+    <small style="color:#666">${safeText(n.pubDate)}</small>
+    <p style="margin:6px 0">${safeText(n.description.replace(/<[^>]*>?/gm,''))}</p>
+  </div>`).join('\n');
+  return rows;
+}
+
+// MAIN BUILD FUNCTION
+btnFetch.addEventListener('click', async () => {
+  statusEl.textContent = 'Fetching data — please wait...';
+  // disable button while fetching
+  btnFetch.disabled = true;
+
+  try {
+    const dateLabel = getTodayDate();
+    // 1) Top Gainers (24h) — fetch top by 24h change desc
+    const gainersRaw = await fetchCoinMarkets('price_change_percentage_24h_desc', 8).catch(e=>{
+      console.warn('gainers fetch fail', e); return [];
+    });
+    // ensure fields exist; CoinGecko returns array
+    const gainers = (Array.isArray(gainersRaw) ? gainersRaw.slice(0,5) : []);
+
+    // 2) Top Losers (24h) — asc
+    const losersRaw = await fetchCoinMarkets('price_change_percentage_24h_asc', 8).catch(e=>{
+      console.warn('losers fetch fail', e); return [];
+    });
+    const losers = (Array.isArray(losersRaw) ? losersRaw.slice(0,5) : []);
+
+    // 3) Recently Added coins — use coins/list and take last items
+    const coinList = await fetchCoinList().catch(e=>{
+      console.warn('coin list fail', e); return [];
+    });
+    const recentlyAdded = (Array.isArray(coinList) ? coinList.slice(-8).reverse().slice(0,5) : []);
+
+    // 4) Fetch news via CoinTelegraph + CoinDesk RSS (via allorigins)
+    let newsItems = [];
+    try {
+      // CoinTelegraph
+      const ct = await fetchRssViaAllorigins('https://cointelegraph.com/rss');
+      const ctItems = parseRssItems(ct, 5);
+      // CoinDesk
+      const cd = await fetchRssViaAllorigins('https://www.coindesk.com/arc/outboundfeeds/rss/');
+      const cdItems = parseRssItems(cd, 5);
+      // merge and dedupe by title (simple)
+      const merged = [...ctItems, ...cdItems];
+      const seen = new Set();
+      merged.forEach(it => {
+        if (!seen.has(it.title) && newsItems.length < 8){
+          newsItems.push(it);
+          seen.add(it.title);
+        }
+      });
+    } catch(err){
+      console.warn('news fetch error', err);
+      // fallback: empty news; we'll show friendly message
+    }
+
+    // Build each block's SEO title + description + content
+    // 1) GAINERS
+    const titleG = `Top Crypto Gainers (24h) — ${dateLabel}`;
+    const descG = `Daily update: top cryptocurrency gainers over the last 24 hours. Live prices, percent change and links to CoinGecko. Updated ${dateLabel}.`;
+    const imageG = gainers[0] && gainers[0].image ? gainers[0].image : 'https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=029';
+    const metaG = buildSEOTemplate(titleG, descG, imageG);
+    const bodyG = `<p><em>Updated: ${dateLabel}</em></p>\n` + (gainers.length ? coinsToHtmlTable(gainers) : '<p>No data available.</p>');
+    const postHtmlG = buildPostHtml(titleG, metaG, bodyG);
+
+    // 2) LOSERS
+    const titleL = `Top Crypto Losers (24h) — ${dateLabel}`;
+    const descL = `Daily update: top cryptocurrency losers over the last 24 hours. Prices, percent drops and coin links. Updated ${dateLabel}.`;
+    const imageL = losers[0] && losers[0].image ? losers[0].image : 'https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=029';
+    const metaL = buildSEOTemplate(titleL, descL, imageL);
+    const bodyL = `<p><em>Updated: ${dateLabel}</em></p>\n` + (losers.length ? coinsToHtmlTable(losers) : '<p>No data available.</p>');
+    const postHtmlL = buildPostHtml(titleL, metaL, bodyL);
+
+    // 3) NEW
+    const titleN = `Newly Listed Crypto Tokens — ${dateLabel}`;
+    const descN = `Latest newly listed coins and tokens. Keep an eye on fresh launches and tickers. Updated ${dateLabel}.`;
+    const imageN = 'https://cryptologos.cc/logos/ethereum-eth-logo.png?v=029';
+    const metaN = buildSEOTemplate(titleN, descN, imageN);
+    const bodyN = `<p><em>Updated: ${dateLabel}</em></p>\n` + (recentlyAdded.length ? newCoinsToHtmlList(recentlyAdded) : '<p>No new coins found.</p>');
+    const postHtmlN = buildPostHtml(titleN, metaN, bodyN);
+
+    // 4) NEWS
+    const titleNews = `Crypto News Roundup — ${dateLabel}`;
+    const descNews = `Curated crypto headlines from CoinTelegraph and CoinDesk. Breaking stories, market-moving news and analysis. Updated ${dateLabel}.`;
+    const imageNews = newsItems[0] && newsItems[0].image ? newsItems[0].image : 'https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=029';
+    const metaNews = buildSEOTemplate(titleNews, descNews, imageNews);
+    const bodyNews = `<p><em>Updated: ${dateLabel}</em></p>\n` + (newsItems.length ? newsToHtml(newsItems) : '<p>No news available from sources right now. Try again in a few minutes.</p>');
+    const postHtmlNews = buildPostHtml(titleNews, metaNews, bodyNews);
+
+    // Put outputs into panels
+    document.getElementById('out-gainers').textContent = postHtmlG;
+    document.getElementById('meta-gainers').textContent = `${titleG} — ${descG}`;
+    document.getElementById('out-losers').textContent = postHtmlL;
+    document.getElementById('meta-losers').textContent = `${titleL} — ${descL}`;
+    document.getElementById('out-new').textContent = postHtmlN;
+    document.getElementById('meta-new').textContent = `${titleN} — ${descN}`;
+    document.getElementById('out-news').textContent = postHtmlNews;
+    document.getElementById('meta-news').textContent = `${titleNews} — ${descNews}`;
+
+    // Combined all blocks for "Copy All"
+    const combined = [postHtmlG, postHtmlL, postHtmlN, postHtmlNews].join('\n\n<hr style="margin:20px 0">\n\n');
+    document.getElementById('out-gainers').dataset.combined = combined;
+    // store combined on button attribute for copying
+    btnCopyAll.dataset.combined = combined;
+
+    statusEl.textContent = 'Done — click any "Copy" button to copy HTML for that block.';
+  } catch (err){
+    console.error(err);
+    statusEl.textContent = 'Error fetching data — check console for details.';
+    alert('Error fetching data. See console for details.');
+  } finally {
+    btnFetch.disabled = false;
+  }
+});
+
+// copy individual block
+document.querySelectorAll('.copyBtn').forEach(btn=>{
+  btn.addEventListener('click', async (e)=>{
+    const target = btn.dataset.target;
+    const content = document.getElementById(target).textContent || '';
+    if (!content) { alert('No generated HTML yet — click Fetch & Build first.'); return; }
+    // copy
+    await copyText(content);
+  });
+});
+
+// copy all
+btnCopyAll.addEventListener('click', async ()=>{
+  const combined = btnCopyAll.dataset.combined || document.getElementById('out-gainers').dataset.combined || '';
+  if (!combined) return alert('No generated combined HTML yet — click Fetch & Build first.');
+  await copyText(combined);
+});
+
 </script>
-
 </body>
 </html>
