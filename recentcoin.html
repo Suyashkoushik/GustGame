@@ -2,185 +2,121 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Crypto Market Today - Gainers, Losers & New Coins</title>
-
-  <!-- Default SEO -->
-  <meta name="description" content="Get the latest daily top gaining, losing, and newly added crypto coins with live prices, market cap, and percentage changes. Updated every day.">
-  <meta name="keywords" content="crypto, cryptocurrency, bitcoin, ethereum, top gainers, top losers, new coins, coin news, market updates, altcoins, token list">
-
-  <!-- Open Graph for social sharing -->
-  <meta property="og:title" content="Crypto Market Today - Gainers, Losers & New Coins">
-  <meta property="og:description" content="Daily updated list of top gaining, losing, and newly added crypto coins with live stats.">
-  <meta property="og:image" content="https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=029">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://yourblogurl.com">
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Crypto Market Today - Gainers, Losers & New Coins">
-  <meta name="twitter:description" content="Daily updated list of top gaining, losing, and newly added crypto coins with live stats.">
-  <meta name="twitter:image" content="https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=029">
+  <title>Crypto Pulse - Daily Gainers, Losers, New Coins & News</title>
+  <meta name="description" content="Live updates of top gaining, losing, and newly listed cryptocurrencies with the latest crypto news.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    button { padding: 10px 20px; margin: 10px 5px; }
-    textarea { width: 100%; height: 400px; margin-top: 10px; }
-    .loading { font-weight: bold; color: green; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f4f4; }
+    header { background: #222; color: #fff; padding: 15px; text-align: center; font-size: 1.5em; }
+    section { background: #fff; margin: 20px auto; padding: 15px; max-width: 900px; border-radius: 10px; }
+    h2 { border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-bottom: 15px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    table, th, td { border: 1px solid #ddd; }
+    th, td { padding: 8px; text-align: left; }
+    th { background: #eee; }
+    img { vertical-align: middle; width: 24px; height: 24px; border-radius: 50%; margin-right: 5px; }
+    .news-item { margin-bottom: 10px; }
+    .news-item a { text-decoration: none; color: #0073e6; font-weight: bold; }
   </style>
 </head>
 <body>
 
-<h2>🪙 Auto Blog HTML Generator (Crypto Updates)</h2>
+<header>🚀 Crypto Pulse - Gainers | Losers | New Coins | News</header>
 
-<button onclick="generateRecentCoins()">📥 Recently Added Coins</button>
-<button onclick="generateTopGainers()">📈 Top Gainers (24h)</button>
-<button onclick="generateTopLosers()">📉 Top Losers (24h)</button>
-<button onclick="copyToClipboard()">📋 Copy to Clipboard</button>
+<section>
+  <h2>📈 Top Gaining Coins (24h)</h2>
+  <table id="gainers">
+    <tr><th>Coin</th><th>Price (USD)</th><th>Change (24h)</th></tr>
+  </table>
+</section>
 
-<p id="status" class="loading"></p>
-<textarea id="blogOutput" placeholder="Blog HTML will appear here..."></textarea>
+<section>
+  <h2>📉 Top Losing Coins (24h)</h2>
+  <table id="losers">
+    <tr><th>Coin</th><th>Price (USD)</th><th>Change (24h)</th></tr>
+  </table>
+</section>
+
+<section>
+  <h2>🆕 Newly Listed Coins</h2>
+  <table id="newCoins">
+    <tr><th>Coin</th><th>Symbol</th><th>Listed At</th></tr>
+  </table>
+</section>
+
+<section>
+  <h2>📰 Latest Crypto News</h2>
+  <div id="cryptoNews"></div>
+</section>
 
 <script>
-function getTodayDate() {
-  const today = new Date();
-  const options = { year: 'numeric', month: 'long', day: 'numeric' };
-  return today.toLocaleDateString(undefined, options);
+// ========== Fetch Top Gainers ==========
+async function loadGainers() {
+  let res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_desc&per_page=5&page=1&sparkline=false');
+  let data = await res.json();
+  let table = document.getElementById("gainers");
+  data.forEach(coin => {
+    let row = `<tr>
+      <td><img src="${coin.image}"> ${coin.name} (${coin.symbol.toUpperCase()})</td>
+      <td>$${coin.current_price.toLocaleString()}</td>
+      <td style="color:green;">${coin.price_change_percentage_24h.toFixed(2)}%</td>
+    </tr>`;
+    table.innerHTML += row;
+  });
 }
 
-function updateSEO(title, description, image) {
-  document.title = title;
-  document.querySelector('meta[name="description"]').setAttribute('content', description);
-  document.querySelector('meta[property="og:title"]').setAttribute('content', title);
-  document.querySelector('meta[property="og:description"]').setAttribute('content', description);
-  document.querySelector('meta[name="twitter:title"]').setAttribute('content', title);
-  document.querySelector('meta[name="twitter:description"]').setAttribute('content', description);
-  document.querySelector('meta[property="og:image"]').setAttribute('content', image);
-  document.querySelector('meta[name="twitter:image"]').setAttribute('content', image);
+// ========== Fetch Top Losers ==========
+async function loadLosers() {
+  let res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change_24h_asc&per_page=5&page=1&sparkline=false');
+  let data = await res.json();
+  let table = document.getElementById("losers");
+  data.forEach(coin => {
+    let row = `<tr>
+      <td><img src="${coin.image}"> ${coin.name} (${coin.symbol.toUpperCase()})</td>
+      <td>$${coin.current_price.toLocaleString()}</td>
+      <td style="color:red;">${coin.price_change_percentage_24h.toFixed(2)}%</td>
+    </tr>`;
+    table.innerHTML += row;
+  });
 }
 
-function copyToClipboard() {
-  const output = document.getElementById("blogOutput");
-  output.select();
-  document.execCommand("copy");
-  alert("✅ HTML copied to clipboard!");
+// ========== Fetch New Coins ==========
+async function loadNewCoins() {
+  let res = await fetch('https://api.coingecko.com/api/v3/coins/list?include_platform=false');
+  let data = await res.json();
+  let latest = data.slice(-5).reverse();
+  let table = document.getElementById("newCoins");
+  latest.forEach(coin => {
+    let row = `<tr>
+      <td>${coin.name}</td>
+      <td>${coin.symbol.toUpperCase()}</td>
+      <td>Recently Added</td>
+    </tr>`;
+    table.innerHTML += row;
+  });
 }
 
-async function generateRecentCoins() {
-  const output = document.getElementById("blogOutput");
-  const status = document.getElementById("status");
-  status.textContent = "Fetching recently added coins...";
-  output.value = "";
-
-  updateSEO(
-    `🆕 Recently Added Crypto Coins – ${getTodayDate()}`,
-    "List of newly added cryptocurrencies with live prices, market cap, and stats.",
-    "https://cryptologos.cc/logos/ethereum-eth-logo.png?v=029"
-  );
-
-  try {
-    const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_asc&per_page=10&page=1&sparkline=false");
-    const coins = await res.json();
-
-    let html = `<h2>🆕 Recently Added Coins – ${getTodayDate()}</h2>\n<ul>\n`;
-
-    coins.forEach(coin => {
-      html += `
-  <li>
-    <strong>${coin.name} (${coin.symbol.toUpperCase()})</strong><br>
-    Price: $${coin.current_price}<br>
-    Market Cap: $${coin.market_cap.toLocaleString()}<br>
-    <img src="${coin.image}" alt="${coin.name}" width="32" height="32"><br>
-    <a href="https://www.coingecko.com/en/coins/${coin.id}" target="_blank">🔗 View on CoinGecko</a>
-  </li>\n<hr>`;
-    });
-
-    html += "</ul>\n<p>⏱ Updated: " + new Date().toLocaleString() + "</p>";
-
-    output.value = html;
-    status.textContent = "✅ Recent coins HTML generated!";
-  } catch (error) {
-    status.textContent = "❌ Failed to load recent coins.";
-    console.error(error);
-  }
+// ========== Fetch Crypto News ==========
+async function loadNews() {
+  let res = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN');
+  let json = await res.json();
+  let news = json.Data.slice(0, 5);
+  let container = document.getElementById("cryptoNews");
+  news.forEach(n => {
+    let item = `<div class="news-item">
+      <a href="${n.url}" target="_blank">${n.title}</a><br>
+      <small>${new Date(n.published_on * 1000).toLocaleString()}</small>
+    </div>`;
+    container.innerHTML += item;
+  });
 }
 
-async function generateTopGainers() {
-  const output = document.getElementById("blogOutput");
-  const status = document.getElementById("status");
-  status.textContent = "Fetching top gainers (24h)...";
-  output.value = "";
-
-  updateSEO(
-    `📈 Top Crypto Gainers – ${getTodayDate()}`,
-    "Daily updated list of top gaining cryptocurrencies with price and percentage change.",
-    "https://cryptologos.cc/logos/binance-coin-bnb-logo.png?v=029"
-  );
-
-  try {
-    const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=price_change_percentage_24h_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h");
-    const coins = await res.json();
-
-    let html = `<h2>📈 Top Gainers in Last 24 Hours – ${getTodayDate()}</h2>\n<ul>\n`;
-
-    coins.forEach(coin => {
-      html += `
-  <li>
-    <strong>${coin.name} (${coin.symbol.toUpperCase()})</strong><br>
-    Price: $${coin.current_price}<br>
-    24h Change: <span style="color:green;">+${coin.price_change_percentage_24h.toFixed(2)}%</span><br>
-    <img src="${coin.image}" alt="${coin.name}" width="32" height="32"><br>
-    <a href="https://www.coingecko.com/en/coins/${coin.id}" target="_blank">🔗 View on CoinGecko</a>
-  </li>\n<hr>`;
-    });
-
-    html += "</ul>\n<p>⏱ Updated: " + new Date().toLocaleString() + "</p>";
-
-    output.value = html;
-    status.textContent = "✅ Top gainers HTML generated!";
-  } catch (error) {
-    status.textContent = "❌ Failed to load top gainers.";
-    console.error(error);
-  }
-}
-
-async function generateTopLosers() {
-  const output = document.getElementById("blogOutput");
-  const status = document.getElementById("status");
-  status.textContent = "Fetching top losers (24h)...";
-  output.value = "";
-
-  updateSEO(
-    `📉 Top Crypto Losers – ${getTodayDate()}`,
-    "Daily updated list of top losing cryptocurrencies with price and percentage drop.",
-    "https://cryptologos.cc/logos/solana-sol-logo.png?v=029"
-  );
-
-  try {
-    const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=price_change_percentage_24h_asc&per_page=10&page=1&sparkline=false&price_change_percentage=24h");
-    const coins = await res.json();
-
-    let html = `<h2>📉 Top Losers in Last 24 Hours – ${getTodayDate()}</h2>\n<ul>\n`;
-
-    coins.forEach(coin => {
-      html += `
-  <li>
-    <strong>${coin.name} (${coin.symbol.toUpperCase()})</strong><br>
-    Price: $${coin.current_price}<br>
-    24h Change: <span style="color:red;">${coin.price_change_percentage_24h.toFixed(2)}%</span><br>
-    <img src="${coin.image}" alt="${coin.name}" width="32" height="32"><br>
-    <a href="https://www.coingecko.com/en/coins/${coin.id}" target="_blank">🔗 View on CoinGecko</a>
-  </li>\n<hr>`;
-    });
-
-    html += "</ul>\n<p>⏱ Updated: " + new Date().toLocaleString() + "</p>";
-
-    output.value = html;
-    status.textContent = "✅ Top losers HTML generated!";
-  } catch (error) {
-    status.textContent = "❌ Failed to load top losers.";
-    console.error(error);
-  }
-}
+// Load all sections
+loadGainers();
+loadLosers();
+loadNewCoins();
+loadNews();
 </script>
 
 </body>
