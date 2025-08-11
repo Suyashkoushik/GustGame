@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>City News Post Generator</title>
+<meta charset="UTF-8">
+<style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: auto; padding: 20px; }
+    h1 { text-align: center; }
+    input, textarea { width: 100%; margin-bottom: 10px; padding: 8px; }
+    button { padding: 10px 15px; background: #007bff; color: white; border: none; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    .news-item { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+    #output { white-space: pre-wrap; background: #f4f4f4; padding: 10px; border: 1px solid #ccc; }
+</style>
+</head>
+<body>
+
+<h1>City News Post Generator</h1>
+
+<label>City Name:</label>
+<input type="text" id="city" placeholder="e.g. Mumbai">
+
+<label>Date (e.g. 11 August 2025):</label>
+<input type="text" id="date">
+
+<label>Featured Image URL:</label>
+<input type="text" id="image">
+
+<label>Meta Description (leave blank to auto-generate):</label>
+<textarea id="metaDesc" rows="2"></textarea>
+
+<label>Keywords (comma separated, leave blank to auto-generate):</label>
+<input type="text" id="keywords">
+
+<h3>Top 10 News</h3>
+<div id="newsItems"></div>
+<button type="button" onclick="addNewsItem()">+ Add News Item</button>
+
+<br><br>
+<button onclick="generateHTML()">Generate Blogger Post HTML</button>
+
+<h3>Generated HTML:</h3>
+<textarea id="output" rows="20" readonly></textarea>
+<button onclick="copyHTML()">Copy to Clipboard</button>
+
+<script>
+function addNewsItem() {
+    let container = document.getElementById("newsItems");
+    let index = container.children.length + 1;
+    let div = document.createElement("div");
+    div.classList.add("news-item");
+    div.innerHTML = `
+        <strong>News ${index} Title:</strong>
+        <input type="text" class="news-title" placeholder="Headline">
+        <strong>Short Description:</strong>
+        <textarea class="news-desc" rows="2"></textarea>
+        <strong>Source Link:</strong>
+        <input type="text" class="news-link" placeholder="https://">
+    `;
+    container.appendChild(div);
+}
+
+function generateHTML() {
+    let city = document.getElementById("city").value.trim();
+    let date = document.getElementById("date").value.trim();
+    let image = document.getElementById("image").value.trim();
+    let metaDesc = document.getElementById("metaDesc").value.trim();
+    let keywords = document.getElementById("keywords").value.trim();
+
+    if (!metaDesc) {
+        metaDesc = `Read the top 10 latest news from ${city} today, ${date}. Stay updated with breaking headlines and important city updates.`;
+    }
+    if (!keywords) {
+        keywords = `${city} news, Top 10 ${city} news, ${city} headlines, ${city} latest news, ${city} breaking news, ${city} today news`;
+    }
+
+    let newsHTML = "<ol>";
+    let titles = document.querySelectorAll(".news-title");
+    let descs = document.querySelectorAll(".news-desc");
+    let links = document.querySelectorAll(".news-link");
+
+    for (let i = 0; i < titles.length; i++) {
+        if (titles[i].value.trim()) {
+            newsHTML += `<li><strong>${titles[i].value.trim()}</strong> – ${descs[i].value.trim()} <a href="${links[i].value.trim()}" target="_blank">Read more</a></li>`;
+        }
+    }
+    newsHTML += "</ol>";
+
+    let html = `
+<title>Top 10 News in ${city} – ${date}</title>
+<meta name="description" content="${metaDesc}">
+<meta name="keywords" content="${keywords}">
+
+<img src="${image}" alt="${city} city news" style="width:100%;height:auto;">
+
+<h1>Top 10 News in ${city} – ${date}</h1>
+<p>Here are the top 10 latest news updates from ${city} today:</p>
+${newsHTML}
+<p>Stay tuned for more city updates tomorrow!</p>
+    `;
+
+    document.getElementById("output").value = html.trim();
+}
+
+function copyHTML() {
+    let output = document.getElementById("output");
+    output.select();
+    document.execCommand("copy");
+    alert("HTML copied to clipboard!");
+}
+
+addNewsItem(); // start with 1 news item
+</script>
+
+</body>
+</html>
