@@ -20,9 +20,6 @@
 <label>City Name:</label>
 <input type="text" id="city" placeholder="e.g. Mumbai">
 
-<label>Date (e.g. 11 August 2025):</label>
-<input type="text" id="date">
-
 <label>Featured Image URL:</label>
 <input type="text" id="image">
 
@@ -62,13 +59,17 @@ function addNewsItem() {
 
 function generateHTML() {
     let city = document.getElementById("city").value.trim();
-    let date = document.getElementById("date").value.trim();
     let image = document.getElementById("image").value.trim();
     let metaDesc = document.getElementById("metaDesc").value.trim();
     let keywords = document.getElementById("keywords").value.trim();
 
+    // Get today's date automatically
+    let today = new Date();
+    let options = { day: 'numeric', month: 'long', year: 'numeric' };
+    let dateStr = today.toLocaleDateString('en-GB', options);
+
     if (!metaDesc) {
-        metaDesc = `Read the top 10 latest news from ${city} today, ${date}. Stay updated with breaking headlines and important city updates.`;
+        metaDesc = `Read the top 10 latest news from ${city} today, ${dateStr}. Stay updated with breaking headlines and important city updates.`;
     }
     if (!keywords) {
         keywords = `${city} news, Top 10 ${city} news, ${city} headlines, ${city} latest news, ${city} breaking news, ${city} today news`;
@@ -87,13 +88,13 @@ function generateHTML() {
     newsHTML += "</ol>";
 
     let html = `
-<title>Top 10 News in ${city} – ${date}</title>
+<title>Top 10 News in ${city} – ${dateStr}</title>
 <meta name="description" content="${metaDesc}">
 <meta name="keywords" content="${keywords}">
 
 <img src="${image}" alt="${city} city news" style="width:100%;height:auto;">
 
-<h1>Top 10 News in ${city} – ${date}</h1>
+<h1>Top 10 News in ${city} – ${dateStr}</h1>
 <p>Here are the top 10 latest news updates from ${city} today:</p>
 ${newsHTML}
 <p>Stay tuned for more city updates tomorrow!</p>
