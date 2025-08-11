@@ -20,7 +20,7 @@
 <label>City Name:</label>
 <input type="text" id="city" placeholder="e.g. Mumbai">
 
-<label>Featured Image URL:</label>
+<label>Featured Image URL (Main Post):</label>
 <input type="text" id="image">
 
 <label>Meta Description (leave blank to auto-generate):</label>
@@ -53,6 +53,8 @@ function addNewsItem() {
         <textarea class="news-desc" rows="2"></textarea>
         <strong>Source Link:</strong>
         <input type="text" class="news-link" placeholder="https://">
+        <strong>Optional Image URL:</strong>
+        <input type="text" class="news-img" placeholder="https://example.com/image.jpg">
     `;
     container.appendChild(div);
 }
@@ -63,7 +65,7 @@ function generateHTML() {
     let metaDesc = document.getElementById("metaDesc").value.trim();
     let keywords = document.getElementById("keywords").value.trim();
 
-    // Get today's date automatically
+    // Auto today's date
     let today = new Date();
     let options = { day: 'numeric', month: 'long', year: 'numeric' };
     let dateStr = today.toLocaleDateString('en-GB', options);
@@ -79,10 +81,12 @@ function generateHTML() {
     let titles = document.querySelectorAll(".news-title");
     let descs = document.querySelectorAll(".news-desc");
     let links = document.querySelectorAll(".news-link");
+    let imgs = document.querySelectorAll(".news-img");
 
     for (let i = 0; i < titles.length; i++) {
         if (titles[i].value.trim()) {
-            newsHTML += `<li><strong>${titles[i].value.trim()}</strong> – ${descs[i].value.trim()} <a href="${links[i].value.trim()}" target="_blank">Read more</a></li>`;
+            let imgHTML = imgs[i].value.trim() ? `<br><img src="${imgs[i].value.trim()}" alt="${titles[i].value.trim()}" style="max-width:100%;height:auto;margin-top:5px;">` : "";
+            newsHTML += `<li>${imgHTML}<strong>${titles[i].value.trim()}</strong> – ${descs[i].value.trim()} <a href="${links[i].value.trim()}" target="_blank">Read more</a></li>`;
         }
     }
     newsHTML += "</ol>";
@@ -110,7 +114,7 @@ function copyHTML() {
     alert("HTML copied to clipboard!");
 }
 
-addNewsItem(); // start with 1 news item
+addNewsItem(); // Start with 1 news item
 </script>
 
 </body>
